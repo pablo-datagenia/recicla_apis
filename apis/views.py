@@ -12,7 +12,7 @@ from django.contrib.auth.hashers import check_password, make_password
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from .decorator import accion_usuario, accion_recolector
+from .decorator import accion_usuario, accion_recolector, accion_admin
 
 from .servicios.solicitud_manager import SolicitudManager
 
@@ -53,15 +53,33 @@ def crear_solicitud(request):
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def solicitudes_pendientes(request):
+@accion_usuario
+def cancelar_solicitud(request):
 
-    pendientes = Solicitud.objects.filter(estado=SolicitudEstado.NUEVA,
-                                          eliminado=False).\
-        values('id', 'usuario__username', 'domicilio__domicilio', 'comentario').\
-        prefetch_related('usuario', 'domicilio', '')
+    st, data = SolicitudManager.cancelar_solicitud(request.data, request.user)
+
+    return Response(status=st, data=data)
 
 
-    return Response()
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@accion_recolector
+def solicitudes_nuevas(request):
+
+    st, data = SolicitudManager.obtener_nuevas()
+    return Response(status=st, data=data)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@accion_admin
+def solicitudes_eliminadas(request):
+
+    st, data = SolicitudManager.obtener_eliminadas()
+    return Response(status=st, data=data)
+
 
 
 @api_view(['POST'])
@@ -70,48 +88,42 @@ def solicitudes_pendientes(request):
 @accion_recolector
 def asignar_solicitud(request):
 
-    return Response()
+    st, data = SolicitudManager.asignar_solicitud(request.data, request.user)
+
+    return Response(status=st, data=data)
 
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
+@accion_recolector
+def planificar_solicitud(request):
+
+    st, data = SolicitudManager.planificar_solicitud(request.data, request.user)
+
+    return Response(status=st, data=data)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@accion_recolector
+def dar_curso_solicitud(request):
+
+    st, data = SolicitudManager.dar_curso_solicitud(request.data, request.user)
+
+    return Response(status=st, data=data)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@accion_recolector
 def cerrar_solicitud(request):
 
-    return Response()
+    st, data = SolicitudManager.cerrar_solicitud(request.data, request.user)
 
-
-class ApiUsuario(APIView):
-    """
-    Lista de usuarios de la aplicación
-    """
-
-    authentication_classes = [TokenAuthentication]
-    permission_classes = (IsAuthenticated,)
-
-    def post(self, request, pk, format=None):
-
-        token_user = request.user
-        if token_user != 'admin':
-            return Response('Permiso denegado')
-
-        usuario = self.get_object(pk=pk)
-        serializer = UsuarioSerializer(usuario)
-        return Response(serializer.data)
-
-    def get_object(self, pk):
-        try:
-            return Usuario.objects.get(pk=pk)
-        except Usuario.DoesNotExist:
-            raise Http404
-
-    # def post(self, request, format=None):
-    #     serializer = UsuarioSerializer(data=request.data)
-    #     if serializer.is_valid():
-    #         # Validar alta de usuario
-    #         serializer.save()
-    #         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(status=st, data=data)
 
 
 class ProvinciaList(generics.ListAPIView):

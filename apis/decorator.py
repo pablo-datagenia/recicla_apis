@@ -16,7 +16,7 @@ def accion_usuario(function):
         if request.user is not None and validarGrupo(request.user, 'usuarios'):
             return function(request, *args, **kwargs)
         else:
-            return Exception("El usuario no tiene permisos para hacer esta accion")
+            raise PermissionError("El usuario no tiene permisos para hacer esta accion")
 
     wrap.__doc__ = function.__doc__
     wrap.__name__ = function.__name__
@@ -30,7 +30,7 @@ def accion_admin(function):
         if request.user is not None and validarGrupo(request.user, 'administrador'):
             return function(request, *args, **kwargs)
         else:
-            return Exception("El usuario no tiene permisos para hacer esta accion")
+            raise PermissionError("El usuario no tiene permisos para hacer esta accion")
 
     wrap.__doc__ = function.__doc__
     wrap.__name__ = function.__name__
@@ -44,7 +44,7 @@ def accion_recolector(function):
         if request.user is not None and validarGrupo(request.user, 'recolector'):
             return function(request, *args, **kwargs)
         else:
-            return Exception("El usuario no tiene permisos para hacer esta accion")
+            raise PermissionError("El usuario no tiene permisos para hacer esta accion")
 
     wrap.__doc__ = function.__doc__
     wrap.__name__ = function.__name__
@@ -58,7 +58,7 @@ def accion_coordinador(function):
         if request.user is not None and validarGrupo(request.user, 'coordinador'):
             return function(request, *args, **kwargs)
         else:
-            return Exception("El usuario no tiene permisos para hacer esta accion")
+            raise PermissionError("El usuario no tiene permisos para hacer esta accion")
 
     wrap.__doc__ = function.__doc__
     wrap.__name__ = function.__name__
