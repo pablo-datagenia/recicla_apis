@@ -13,26 +13,24 @@ class Provincia(models.Model):
         return str(self.pk) + '-' + self.provincia
 
 
-class UsuarioRol(models.Model):
-    rol = models.CharField(max_length=50, verbose_name='Rol de aplicación', null=False, blank=False)
-    habilitado = models.BooleanField(default=False)
-    descripcion = models.CharField(max_length=250, null=True, blank=True)
+class Perfil:
+    USUARIO = 'Recicla'
+    RECOLECTOR = 'Recolecta'
+    CENTRO = 'Organiza'
+    COORDINADOR = 'Coordina'
+    ADMIN = 'Supervisa'
 
-    def __str__(self):
-        return str(self.pk) + '-' + self.rol
-
-
-class Usuario(AbstractUserModel):
-    usuario = models.CharField(max_length=50, unique=True)
-    email = models.CharField(max_length=150, blank=True, null=True)
-    rol = models.ForeignKey(UsuarioRol, on_delete=models.PROTECT, null=False)
-
-    def __str__(self):
-        return str(self.pk) + '-' + self.usuario
+    PERFILES = (
+        (1, USUARIO),
+        (2, RECOLECTOR),
+        (3, CENTRO),
+        (4, COORDINADOR),
+        (5, ADMIN),
+    )
 
 
 class UsuarioDomicilio(models.Model):
-    usuario = models.ForeignKey(Usuario, on_delete=models.PROTECT, null=False)
+    usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=False)
     domicilio = models.CharField(max_length=250, blank=True, null=True)
     provincia = models.ForeignKey(Provincia, on_delete=models.PROTECT, null=False)
     geox = models.CharField(max_length=50, blank=True, null=True)
@@ -62,7 +60,8 @@ class SolicitudEstado:
 
 
 class Solicitud(models.Model):
-    usuario = models.ForeignKey(Usuario, on_delete=models.PROTECT, null=False)
+    usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=False)
+    domicilio = models.ForeignKey(UsuarioDomicilio, on_delete=models.PROTECT, null=False)
     estado = models.IntegerField(choices=SolicitudEstado.ESTADOS)
     comentario = models.CharField(max_length=250, blank=True, null=True)
     eliminado = models.BooleanField(blank=False, default=False)
@@ -92,7 +91,7 @@ class Viaje(models.Model):
     creado = models.DateTimeField(verbose_name='Creado', auto_now_add=True)
     inicio = models.DateTimeField(verbose_name='Inicia en', null=True, blank=True)
     fin = models.DateTimeField(verbose_name='Finalizado en', null=True, blank=True)
-    recolector = models.ForeignKey(Usuario, on_delete=models.PROTECT, null=False, verbose_name='Recolector')
+    recolector = models.ForeignKey(User, on_delete=models.PROTECT, null=False, verbose_name='Recolector')
 
     def __str__(self):
         return self.recolector + '-Viaje:' + self.pk

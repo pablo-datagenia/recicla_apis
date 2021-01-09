@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Provincia, UsuarioRol, Usuario, UsuarioDomicilio,  Solicitud, \
+from .models import Provincia, UsuarioDomicilio,  Solicitud, \
     SolicitudMensaje, Material, SolicitudMaterial, Viaje, ViajeSolicitud
 
 
@@ -10,8 +10,6 @@ class ProvinciaAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Provincia, ProvinciaAdmin)
-admin.site.register(UsuarioRol)
-admin.site.register(Usuario)
 admin.site.register(UsuarioDomicilio)
 admin.site.register(Solicitud)
 admin.site.register(SolicitudMensaje)

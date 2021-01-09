@@ -4,8 +4,7 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.views import APIView
 from . import serializers, models
-from .models import Usuario, Solicitud, SolicitudEstado
-from .serializers import UsuarioSerializer
+from .models import Solicitud, SolicitudEstado
 from django.http import Http404
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import check_password, make_password
@@ -13,6 +12,8 @@ from django.contrib.auth.hashers import check_password, make_password
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
+from .decorator import accion_usuario
+from .servicios.solicitud_manager import SolicitudManager
 
 
 @api_view(['POST'])
@@ -40,25 +41,24 @@ def registrar_usuario(request):
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
+@accion_usuario
 def crear_solicitud(request):
-    # Valida usuario
-    usuario = request.user
-    # Valida data recibida
 
+    st, data = SolicitudManager.crear_solicitud(request.data, request.user)
 
-    # Solicitud
-    solicitud = Solicitud()
-    solicitud.usuario = usuario
-    solicitud.estado = SolicitudEstado.NUEVA
-    estado = models.IntegerField(choices=SolicitudEstado.ESTADOS)
-
-    return Response()
+    return Response(status=st, data=data)
 
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def solicitudes_pendientes(request):
+
+    pendientes = Solicitud.objects.filter(estado=SolicitudEstado.NUEVA,
+                                          eliminado=False).\
+        values('id', 'usuario__username', 'domicilio__domicilio', 'comentario').\
+        prefetch_related('usuario', 'domicilio', '')
+
 
     return Response()
 
@@ -115,16 +115,6 @@ class ApiUsuario(APIView):
 class ProvinciaList(generics.ListAPIView):
     serializer_class = serializers.ProvinciaSerializer
     queryset = models.Provincia.objects.all()
-
-
-class UsuarioRolList(generics.ListAPIView):
-    serializer_class = serializers.UsuarioRolSerializer
-    queryset = models.UsuarioRol.objects.all()
-
-
-class UsuarioList(generics.ListAPIView):
-    serializer_class = serializers.UsuarioSerializer
-    queryset = models.Usuario.objects.all()
 
 
 class UsuarioDomicilioList(generics.ListAPIView):

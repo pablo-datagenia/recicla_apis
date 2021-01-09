@@ -1,6 +1,5 @@
 from rest_framework import serializers
-
-from apis.models import Provincia, UsuarioRol, Usuario, UsuarioDomicilio, SolicitudEstado, Solicitud, \
+from apis.models import Provincia, UsuarioDomicilio, SolicitudEstado, Solicitud, \
     SolicitudMensaje, Material, SolicitudMaterial, Viaje, ViajeSolicitud
 
 
@@ -99,18 +98,6 @@ class SolicitudEstadoSerializer(serializers.ModelSerializer):
 class UsuarioDomicilioSerializer(serializers.ModelSerializer):
     class Meta:
         model = UsuarioDomicilio
-        fields = '__all__'
-
-
-class UsuarioSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Usuario
-        fields = '__all__'
-
-
-class UsuarioRolSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UsuarioRol
         fields = '__all__'
 
 
