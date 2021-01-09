@@ -12,7 +12,8 @@ from django.contrib.auth.hashers import check_password, make_password
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from .decorator import accion_usuario
+from .decorator import accion_usuario, accion_recolector
+
 from .servicios.solicitud_manager import SolicitudManager
 
 
@@ -66,6 +67,7 @@ def solicitudes_pendientes(request):
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
+@accion_recolector
 def asignar_solicitud(request):
 
     return Response()
@@ -117,11 +119,6 @@ class ProvinciaList(generics.ListAPIView):
     queryset = models.Provincia.objects.all()
 
 
-class UsuarioDomicilioList(generics.ListAPIView):
-    serializer_class = serializers.UsuarioDomicilioSerializer
-    queryset = models.UsuarioDomicilio.objects.all()
-
-
 class SolicitudList(generics.ListAPIView):
     serializer_class = serializers.SolicitudSerializer
     queryset = models.Solicitud.objects.all()
@@ -135,11 +132,6 @@ class SolicitudMensajeList(generics.ListAPIView):
 class MaterialList(generics.ListAPIView):
     serializer_class = serializers.MaterialSerializer
     queryset = models.Material.objects.all()
-
-
-class SolicitudMaterialList(generics.ListAPIView):
-    serializer_class = serializers.SolicitudMaterialSerializer
-    queryset = models.SolicitudMaterial.objects.all()
 
 
 class ViajeList(generics.ListAPIView):

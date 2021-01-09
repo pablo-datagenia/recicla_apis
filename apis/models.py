@@ -29,16 +29,23 @@ class Perfil:
     )
 
 
-class UsuarioDomicilio(models.Model):
-    usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=False)
+class PuntoRecoleccion(models.Model):
     domicilio = models.CharField(max_length=250, blank=True, null=True)
     provincia = models.ForeignKey(Provincia, on_delete=models.PROTECT, null=False)
     geox = models.CharField(max_length=50, blank=True, null=True)
     geoy = models.CharField(max_length=50, blank=True, null=True)
-    default = models.BooleanField(default=False)
+    es_global = models.BooleanField(default=False)
+    creado_por = models.ForeignKey(User, on_delete=models.PROTECT, null=False)
+    creada_en = models.DateTimeField(verbose_name='Creada', auto_now_add=True)
 
     def __str__(self):
         return self.domicilio
+
+
+class UsuarioPunto(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=False)
+    punto = models.ForeignKey(PuntoRecoleccion, on_delete=models.PROTECT, null=False)
+    default = models.BooleanField(default=False)
 
 
 class SolicitudEstado:
@@ -49,27 +56,28 @@ class SolicitudEstado:
     CERRADA = 'Cerrada'
     CANCELADA = 'Cancelada'
 
-    ESTADOS = (
-        (1, NUEVA),
-        (2, ASIGNADA),
-        (3, PLANIFICADA),
-        (4, EN_CURSO),
-        (5, CERRADA),
-        (6, CANCELADA),
-    )
+    ESTADOS = {
+        'NUEVA': 1,
+        'ASIGNADA': 2,
+        'PLANIFICADA': 3,
+        'EN_CURSO': 4,
+        'CERRADA': 5,
+        'CANCELADA': 6
+    }
 
 
 class Solicitud(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=False)
-    domicilio = models.ForeignKey(UsuarioDomicilio, on_delete=models.PROTECT, null=False)
+    punto = models.ForeignKey(PuntoRecoleccion, on_delete=models.PROTECT, null=True)
     estado = models.IntegerField(choices=SolicitudEstado.ESTADOS)
+    materiales = models.CharField(max_length=250, blank=False, null=False)
     comentario = models.CharField(max_length=250, blank=True, null=True)
     eliminado = models.BooleanField(blank=False, default=False)
     creada = models.DateTimeField(verbose_name='Creada', auto_now_add=True)
     modificada = models.DateTimeField(verbose_name='Modificada', auto_now=True, null=True)
 
     def __str__(self):
-        return str(self.id) + self.usuario.usuario + '(' + self.creada + ')'
+        return str(self.id) + self.usuario.usuario + '(' + self.creada + ')' + ('[eliminada]' if self.eliminado else '')
 
 
 class SolicitudMensaje(models.Model):
@@ -79,12 +87,16 @@ class SolicitudMensaje(models.Model):
 
 
 class Material(models.Model):
-    material = models.CharField(max_length=150, blank=False, null=False)
+    material = models.CharField(max_length=150, blank=False, null=False, unique=True)
+    codigo = models.CharField(max_length=2, blank=False, null=False, unique=True)
+
+    def __str__(self):
+        return self.codigo + '-(' + self.material + ')'
 
 
 class SolicitudMaterial(models.Model):
     solicitud = models.ForeignKey(Solicitud, on_delete=models.PROTECT, null=False)
-    material = models.ForeignKey(Material, on_delete=models.PROTECT, null=False)
+    material = models.ForeignKey(Material, on_delete=models.PROTECT, null=True)
 
 
 class Viaje(models.Model):

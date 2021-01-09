@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import ProvinciaList, UsuarioDomicilioList, SolicitudMensajeList, \
-    SolicitudList, SolicitudMaterialList, ViajeSolicitudList, MaterialList, ViajeList, ApiUsuario, registrar_usuario, \
+from .views import ProvinciaList, SolicitudMensajeList, \
+    SolicitudList, ViajeSolicitudList, MaterialList, ViajeList, ApiUsuario, registrar_usuario, \
     crear_solicitud, solicitudes_pendientes
 from rest_framework.authtoken import views
 
@@ -19,7 +19,6 @@ urlpatterns = [
     path('crear_solicitud', crear_solicitud),
     path('solicitudes_pendientes', solicitudes_pendientes),
     path('solicitudes', SolicitudList.as_view()),
-    path('solicitud_materiales', SolicitudMaterialList.as_view()),
     path('solicitudes_mensajes', SolicitudMensajeList.as_view()),
     path('viajes', ViajeList.as_view()),
     path('viajes_solicitudes', ViajeSolicitudList.as_view()),

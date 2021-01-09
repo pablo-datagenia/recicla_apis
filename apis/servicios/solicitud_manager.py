@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import status
-from recicla_apis.apis.models import Solicitud, UsuarioDomicilio, SolicitudEstado
+from ..models import Solicitud, UsuarioPunto, SolicitudEstado, SolicitudMaterial, Material, PuntoRecoleccion
 
 
 class SolicitudAcciones:
@@ -11,14 +11,13 @@ class SolicitudAcciones:
     CERRAR = 'Cerrar'
     CANCELAR = 'Cancelar'
 
-    ESTADOS = (
-        (1, CREAR),
-        (2, ASIGNAR),
-        (3, PLANIFICAR),
-        (4, DAR_CURSO),
-        (5, CERRAR),
-        (6, CANCELAR),
-    )
+    ACCIONES = {
+        'CREAR': 1,
+        'ASIGNAR': 2,
+        'PLANIFICAR': 3,
+        'DAR_CURSO': 4,
+        'CERRAR': 5,
+        'CANCELAR': 6}
 
 
 class SolicitudManager(object):
@@ -39,10 +38,10 @@ class SolicitudManager(object):
             return None
 
     @classmethod
-    def __obtener_domicilio(cls, id):
+    def __obtener_punto(cls, punto_id):
         try:
-            return UsuarioDomicilio.objects.get(pk=id)
-        except UsuarioDomicilio.DoesNotExists:
+            return PuntoRecoleccion.objects.get(pk=punto_id)
+        except UsuarioPunto.DoesNotExists:
             return None
 
     @classmethod
@@ -63,16 +62,34 @@ class SolicitudManager(object):
         if not cls.__tiene_permiso(data, usuario, SolicitudAcciones.CREAR):
             return status.HTTP_401_UNAUTHORIZED, 'Usuario sin permiso para crear solicitudes'
 
-        if 'domicilio' not in data:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario sin domicilio para crear solicitud'
+        if 'punto' not in data:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario sin punto de recolección no puede crear solicitud'
+
+        punto = cls.__obtener_punto(data['punto'])
+        if not punto:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario sin punto de recolección no puede crear solicitud'
+
+        if 'materiales' not in data:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No informa materiales para crear solicitud'
 
         try:
 
+            materiales_str = data['materiales']
+            materiales_list = materiales_str.split(';')
+
             solicitud = Solicitud()
             solicitud.usuario = usuario
-            solicitud.estado = SolicitudEstado.NUEVA
-            solicitud.domicilio = data['domicilio']
+            solicitud.estado = SolicitudEstado.ESTADOS['NUEVA']
+            solicitud.materiales = materiales_str
+            solicitud.punto = punto
+            solicitud.comentario = data['comentario']
             solicitud.save()
+
+            for material in materiales_list:
+                sm = SolicitudMaterial()
+                sm.material = Material.objects.get(codigo=material)
+                sm.solicitud = solicitud
+                sm.save()
 
             return status.HTTP_200_OK, {'id': solicitud.id}
 

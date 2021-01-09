@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from apis.models import Provincia, UsuarioDomicilio, SolicitudEstado, Solicitud, \
-    SolicitudMensaje, Material, SolicitudMaterial, Viaje, ViajeSolicitud
+from apis.models import Provincia, UsuarioPunto, SolicitudEstado, Solicitud, \
+    SolicitudMensaje, Material, Viaje, ViajeSolicitud
 
 
 # class PreguntaSerializer(serializers.ModelSerializer):
@@ -65,12 +65,6 @@ class ViajeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class SolicitudMaterialSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SolicitudMaterial
-        fields = '__all__'
-
-
 class MaterialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Material
@@ -95,9 +89,9 @@ class SolicitudEstadoSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class UsuarioDomicilioSerializer(serializers.ModelSerializer):
+class UsuarioPuntoSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UsuarioDomicilio
+        model = UsuarioPunto
         fields = '__all__'
 
 
