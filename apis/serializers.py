@@ -1,7 +1,7 @@
+from django.contrib.auth.models import User
 from rest_framework import serializers
 from apis.models import Provincia, UsuarioPunto, SolicitudEstado, Solicitud, \
     SolicitudMensaje, Material, Viaje, ViajeSolicitud
-
 
 # class PreguntaSerializer(serializers.ModelSerializer):
 #     opciones = OpcionSerializer(many=True)
@@ -53,6 +53,12 @@ from apis.models import Provincia, UsuarioPunto, SolicitudEstado, Solicitud, \
 #             return s_fecha
 #         return None
 from apis.models import PuntoRecoleccion
+
+
+class UsuarioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = '__all__'
 
 
 class ViajeSolicitudSerializer(serializers.ModelSerializer):

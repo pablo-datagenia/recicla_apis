@@ -265,7 +265,25 @@ class SolicitudManager(object):
 
     @classmethod
     def eliminar_solicitud(cls, data, usuario):
-        pass
+
+        if 'id' not in data:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede ELIMINAR una solicitud sin su clave'
+
+        try:
+            soli = Solicitud.objects.get(pk=data['id'])
+        except ObjectDoesNotExist:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la solicitud'
+
+        try:
+            if not validarGrupo(usuario, 'administrador'):
+                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no puede eliminar solicitud'
+
+            soli.eliminada = True
+            soli.save()
+
+            return status.HTTP_200_OK, {'id': soli.id, 'estado': 'ELIMINADA POR ADMIN'}
+        except Exception as exc:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
 
     @classmethod
     def mensajear_solicitud(cls, data, usuario):

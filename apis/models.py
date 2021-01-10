@@ -1,18 +1,8 @@
 from django.contrib.auth.models import User
 from django.db import models
-from django.utils import timezone
 
 
 # Create your models here.
-
-class Provincia(models.Model):
-    provincia = models.CharField(max_length=50, unique=True)
-    habilitada = models.BooleanField(default=False)
-
-    def __str__(self):
-        return str(self.pk) + '-' + self.provincia
-
-
 class Perfil:
     USUARIO = 'Recicla'
     RECOLECTOR = 'Recolecta'
@@ -27,6 +17,15 @@ class Perfil:
         (4, COORDINADOR),
         (5, ADMIN),
     )
+
+
+class Provincia(models.Model):
+    provincia = models.CharField(max_length=50, unique=True)
+    habilitada = models.BooleanField(default=False)
+
+    def __str__(self):
+        return str(self.pk) + '-' + self.provincia
+
 
 
 class PuntoRecoleccion(models.Model):

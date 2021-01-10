@@ -79,6 +79,15 @@ def solicitudes_eliminadas(request):
     return Response(status=st, data=data)
 
 
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@accion_admin
+def eliminar_solicitud(request):
+
+    st, data = SolicitudManager.eliminar_solicitud(request.data, request.user)
+    return Response(status=st, data=data)
+
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
@@ -124,6 +133,11 @@ def cerrar_solicitud(request):
     return Response(status=st, data=data)
 
 
+class UsuariosList(generics.ListAPIView):
+    serializer_class = serializers.UsuarioSerializer
+    queryset = models.User.objects.all()
+
+
 class MaterialList(generics.ListAPIView):
     serializer_class = serializers.MaterialSerializer
     queryset = models.Material.objects.all()
@@ -137,6 +151,11 @@ class ProvinciaList(generics.ListAPIView):
 class SolicitudList(generics.ListAPIView):
     serializer_class = serializers.SolicitudSerializer
     queryset = models.Solicitud.objects.all()
+
+
+class PuntosList(generics.ListAPIView):
+    serializer_class = serializers.PuntoSerializer
+    queryset = models.PuntoRecoleccion.objects.all()
 
 
 class ViajeList(generics.ListAPIView):
