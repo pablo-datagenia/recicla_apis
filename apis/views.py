@@ -10,6 +10,7 @@ from rest_framework.authtoken.models import Token
 from .decorator import accion_usuario, accion_recolector, accion_admin
 
 from .servicios.solicitud_manager import SolicitudManager
+from .servicios.viaje_manager import ViajeManager
 
 
 @api_view(['POST'])
@@ -157,7 +158,18 @@ def planificar_solicitud(request):
 @accion_recolector
 def iniciar_viaje(request):
 
-    st, data = SolicitudManager.dar_curso_solicitud(request.data, request.user)
+    st, data = ViajeManager.iniciar_viaje(request.data, request.user)
+
+    return Response(status=st, data=data)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@accion_recolector
+def actualizar_viaje(request):
+
+    st, data = ViajeManager.actualizar_viaje(request.data, request.user)
 
     return Response(status=st, data=data)
 

@@ -1,6 +1,5 @@
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import F
 from django.utils.datetime_safe import datetime
 from rest_framework import status
 
@@ -89,8 +88,9 @@ class ViajeManager(object):
             return status.HTTP_500_INTERNAL_SERVER_ERROR, f'Error al crear Viaje {str(ex)}'
 
     @classmethod
-    def posicion_viaje(cls, data, usuario):
+    def actualizar_viaje(cls, data, usuario):
 
+        finalizar = False
         if not cls.__tiene_permiso(data, usuario, ViajeAcciones.INICIAR):
             return status.HTTP_401_UNAUTHORIZED, 'Usuario sin permiso para modificar Viajes'
 
@@ -103,6 +103,9 @@ class ViajeManager(object):
         if 'posy' not in data:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede modificar posicion sin clave'
 
+        if 'fin' in data:
+            finalizar = True
+
         try:
             viaje = Viaje.objects.get(pk=data['id'])
         except ObjectDoesNotExist:
@@ -112,9 +115,13 @@ class ViajeManager(object):
 
             viaje.pos_x = data['posx']
             viaje.pos_y = data['posy']
+            if finalizar:
+                viaje.estado = ViajeEstado.CERRADO
+                viaje.fin = datetime.now()
             viaje.save()
 
-            return status.HTTP_200_OK, {'id': viaje.id, 'pos_x': viaje.pos_x, 'pos_y': viaje.pos_y}
+            return status.HTTP_200_OK, {'id': viaje.id, 'pos_x': viaje.pos_x, 'pos_y': viaje.pos_y,
+                                        'finalizado': finalizar}
 
         except Exception as ex:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, f'Error al crear Viaje {str(ex)}'
@@ -174,122 +181,6 @@ class ViajeManager(object):
         except Exception as exc:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
 
-    @classmethod
-    def planificar_Viaje(cls, data, usuario):
-
-        planificar = True
-
-        if 'id' not in data:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede cancelar Viaje sin su clave'
-
-        if 'des' in data:
-            planificar = False
-
-        try:
-            soli = Viaje.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la Viaje'
-
-        try:
-            if soli.recolector != usuario and not validarGrupo(usuario, 'administrador'):
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no puede planificar Viaje de otro usuario'
-
-            if planificar:
-                if soli.estado != ViajeEstado.ASIGNADA or soli.eliminada:
-                    return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede planificar Viaje error estado'
-
-                soli.estado = ViajeEstado.PLANIFICADA
-                soli.planificada = datetime.now()
-                soli.save()
-
-                return status.HTTP_200_OK, {'id': soli.id, 'estado': 'PLANIFICADA'}
-            else:  # DES-PLANIFICAR
-                if soli.estado != ViajeEstado.PLANIFICADA or soli.eliminada:
-                    return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede des-planificar Viaje error estado'
-
-                soli.estado = ViajeEstado.ASIGNADA
-                soli.planificada = None
-                soli.save()
-
-                return status.HTTP_200_OK, {'id': soli.id, 'estado': 'DES-PLANIFICADA'}
-        except Exception as exc:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
-
-    @classmethod
-    def dar_curso_Viaje(cls, data, usuario):
-        if 'id' not in data:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede dar curso a Viaje sin su clave'
-
-        try:
-            soli = Viaje.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la Viaje'
-
-        try:
-            if soli.recolector != usuario and not validarGrupo(usuario, 'administrador'):
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no modificar Viaje de otro recolector'
-
-            if soli.estado != ViajeEstado.PLANIFICADA or soli.eliminada:
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, \
-                       'No se puede dar curso a Viaje en no planificada o eliminada'
-
-            soli.estado = ViajeEstado.EN_CURSO
-            soli.en_curso = datetime.now()
-            soli.save()
-
-            return status.HTTP_200_OK, {'id': soli.id, 'estado': 'EN CURSO'}
-        except Exception as exc:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
-
-    @classmethod
-    def cerrar_Viaje(cls, data, usuario):
-
-        if 'id' not in data:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede cerrar a Viaje sin su clave'
-
-        try:
-            soli = Viaje.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la Viaje'
-
-        try:
-            if soli.recolector != usuario and not validarGrupo(usuario, 'administrador'):
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no puede modificar Viaje de otro recolector'
-
-            if soli.estado != ViajeEstado.EN_CURSO or soli.eliminada:
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, \
-                       'No se puede cerrar Viaje que no estuvo en curso, o la misma está eliminada'
-
-            soli.estado = ViajeEstado.CERRADA
-            soli.cerrada = datetime.now()
-            soli.save()
-
-            return status.HTTP_200_OK, {'id': soli.id, 'estado': 'CERRADA'}
-        except Exception as exc:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
-
-
-    @classmethod
-    def eliminar_Viaje(cls, data, usuario):
-
-        if 'id' not in data:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede ELIMINAR una Viaje sin su clave'
-
-        try:
-            soli = Viaje.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la Viaje'
-
-        try:
-            if not validarGrupo(usuario, 'administrador'):
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no puede eliminar Viaje'
-
-            soli.eliminada = True
-            soli.save()
-
-            return status.HTTP_200_OK, {'id': soli.id, 'estado': 'ELIMINADA POR ADMIN'}
-        except Exception as exc:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
 
     @classmethod
     def mensajear_Viaje(cls, data, usuario):

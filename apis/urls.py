@@ -1,9 +1,9 @@
 from django.contrib.auth.decorators import login_required
 from django.urls import path
 from .views import ProvinciaList, SolicitudList, MaterialList, ViajeList, registrar_usuario, \
-    crear_solicitud, solicitudes_nuevas, solicitudes_eliminadas, cancelar_solicitud, asignar_solicitud, \
-    planificar_solicitud, cerrar_solicitud, iniciar_viaje, PuntosList, eliminar_solicitud, UsuariosList, \
-    solicitudes_planificadas, solicitudes_asignadas, solicitudes_cerradas
+    crear_solicitud, solicitudes_nuevas, solicitudes_eliminadas, asignar_solicitud, \
+    planificar_solicitud, iniciar_viaje, PuntosList, eliminar_solicitud, UsuariosList, \
+    solicitudes_planificadas, solicitudes_asignadas, solicitudes_cerradas, actualizar_viaje
 from rest_framework.authtoken import views
 
 urlpatterns = [
@@ -18,10 +18,13 @@ urlpatterns = [
     # Recolector marca a una solicitud como a recolectarse en el próximo viaje
     # puede agregar fecha de recolección y "des-planificar" si lo requiere
     path('planificar_solicitud', planificar_solicitud),
-
+    # TODO: aqui en el medio queda pendiente la funcionalidad de VER EN MAPA los puntos de recoleccion
+    # Recolector inicia el recorrido para recoger lo planificado
+    # se asocia el listado de solicitudes planificadas al viaje
     path('iniciar_viaje', iniciar_viaje),
-    path('cerrar_solicitud', cerrar_solicitud),
-    path('cancelar_solicitud', cancelar_solicitud),
+    # Se actualiza posición del recolector o el estado del viaje (cerrado)
+    path('actualizar_viaje', actualizar_viaje),
+
     # Listas por Rol
     path('solicitudes_nuevas', solicitudes_nuevas),
     path('solicitudes_asignadas', solicitudes_asignadas),
