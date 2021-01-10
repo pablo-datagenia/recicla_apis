@@ -27,7 +27,6 @@ class Provincia(models.Model):
         return str(self.pk) + '-' + self.provincia
 
 
-
 class PuntoRecoleccion(models.Model):
     domicilio = models.CharField(max_length=250, blank=True, null=True)
     provincia = models.ForeignKey(Provincia, on_delete=models.PROTECT, null=False)
@@ -71,6 +70,7 @@ class Solicitud(models.Model):
     planificada = models.DateTimeField(verbose_name='Planificada', null=True, blank=True)
     en_curso = models.DateTimeField(verbose_name='En curso', null=True, blank=True)
     cerrada = models.DateTimeField(verbose_name='Cerrada', null=True, blank=True)
+    fecha_planificada = models.DateTimeField(verbose_name=u'Fecha de recolección planificada', null=True, blank=True)
 
     def __str__(self):
         return str(self.id) + self.usuario.username

@@ -72,6 +72,46 @@ def solicitudes_nuevas(request):
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
+@accion_recolector
+def solicitudes_asignadas(request):
+
+    st, data = SolicitudManager.obtener_asignadas(request.user)
+    return Response(status=st, data=data)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@accion_recolector
+def solicitudes_planificadas(request):
+
+    st, data = SolicitudManager.obtener_planificadas(request.user)
+    return Response(status=st, data=data)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@accion_recolector
+def solicitudes_en_curso(request):
+
+    st, data = SolicitudManager.obtener_en_curso(request.user)
+    return Response(status=st, data=data)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@accion_recolector
+def solicitudes_cerradas(request):
+
+    st, data = SolicitudManager.obtener_cerradas(request.user)
+    return Response(status=st, data=data)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 @accion_admin
 def solicitudes_eliminadas(request):
 
