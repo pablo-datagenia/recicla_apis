@@ -155,7 +155,7 @@ def planificar_solicitud(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 @accion_recolector
-def dar_curso_solicitud(request):
+def iniciar_viaje(request):
 
     st, data = SolicitudManager.dar_curso_solicitud(request.data, request.user)
 

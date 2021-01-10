@@ -151,19 +151,14 @@ class SolicitudManager(object):
             return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
 
     @classmethod
-    def obtener_en_curso(cls, usuario):
+    def obtener_en_viaje(cls, viaje):
 
         try:
-            en_curso = Solicitud.objects.filter(estado=SolicitudEstado.EN_CURSO,
-                                                usuario=usuario). \
-                exclude(eliminada=True).values('id',
-                                               fec=F('creada'),
-                                               usu=F('usuario__username'),
-                                               punt=F('punto__domicilio'),
-                                               mat=F('materiales'),
-                                               plan=F('fecha_planificada'))
+            en_viaje = Solicitud.objects.filter(estado=SolicitudEstado.en_viaje,
+                                                viaje=viaje). \
+                exclude(eliminada=True)
 
-            return status.HTTP_200_OK, en_curso
+            return status.HTTP_200_OK, en_viaje
         except Exception as exc:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
 
@@ -328,8 +323,8 @@ class SolicitudManager(object):
                 return status.HTTP_500_INTERNAL_SERVER_ERROR, \
                        'No se puede dar curso a solicitud en no planificada o eliminada'
 
-            soli.estado = SolicitudEstado.EN_CURSO
-            soli.en_curso = datetime.now()
+            soli.estado = SolicitudEstado.en_viaje
+            soli.en_viaje = datetime.now()
             soli.save()
 
             return status.HTTP_200_OK, {'id': soli.id, 'estado': 'EN CURSO'}
@@ -351,7 +346,7 @@ class SolicitudManager(object):
             if soli.recolector != usuario and not validarGrupo(usuario, 'administrador'):
                 return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no puede modificar solicitud de otro recolector'
 
-            if soli.estado != SolicitudEstado.EN_CURSO or soli.eliminada:
+            if soli.estado != SolicitudEstado.en_viaje or soli.eliminada:
                 return status.HTTP_500_INTERNAL_SERVER_ERROR, \
                        'No se puede cerrar solicitud que no estuvo en curso, o la misma está eliminada'
 
