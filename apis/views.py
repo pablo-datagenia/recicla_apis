@@ -2,13 +2,8 @@ from rest_framework import generics
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from rest_framework.views import APIView
 from . import serializers, models
-from .models import Solicitud, SolicitudEstado
-from django.http import Http404
-from django.contrib.auth.models import User
-from django.contrib.auth.hashers import check_password, make_password
-
+from django.contrib.auth.models import User, Group
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -35,6 +30,9 @@ def registrar_usuario(request):
     new_user.set_password(password)
     new_user.save()
     token, created = Token.objects.get_or_create(user=new_user)
+
+    group = Group.objects.get(name='usuarios')
+    new_user.groups.add(group)
 
     return Response(status=status.HTTP_200_OK, data={'token': token.key})
 
@@ -126,6 +124,11 @@ def cerrar_solicitud(request):
     return Response(status=st, data=data)
 
 
+class MaterialList(generics.ListAPIView):
+    serializer_class = serializers.MaterialSerializer
+    queryset = models.Material.objects.all()
+
+
 class ProvinciaList(generics.ListAPIView):
     serializer_class = serializers.ProvinciaSerializer
     queryset = models.Provincia.objects.all()
@@ -136,22 +139,6 @@ class SolicitudList(generics.ListAPIView):
     queryset = models.Solicitud.objects.all()
 
 
-class SolicitudMensajeList(generics.ListAPIView):
-    serializer_class = serializers.SolicitudMensajeSerializer
-    queryset = models.SolicitudMensaje.objects.all()
-
-
-class MaterialList(generics.ListAPIView):
-    serializer_class = serializers.MaterialSerializer
-    queryset = models.Material.objects.all()
-
-
 class ViajeList(generics.ListAPIView):
     serializer_class = serializers.ViajeSerializer
     queryset = models.Viaje.objects.all()
-
-
-class ViajeSolicitudList(generics.ListAPIView):
-    serializer_class = serializers.ViajeSolicitudSerializer
-    queryset = models.ViajeSolicitud.objects.all()
-

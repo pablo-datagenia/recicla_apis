@@ -52,6 +52,8 @@ from apis.models import Provincia, UsuarioPunto, SolicitudEstado, Solicitud, \
 #             s_fecha = obj.hasta.strftime("%d-%m-%Y")
 #             return s_fecha
 #         return None
+from apis.models import PuntoRecoleccion
+
 
 class ViajeSolicitudSerializer(serializers.ModelSerializer):
     class Meta:
@@ -98,4 +100,10 @@ class UsuarioPuntoSerializer(serializers.ModelSerializer):
 class ProvinciaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Provincia
+        fields = '__all__'
+
+
+class PuntoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PuntoRecoleccion
         fields = '__all__'
