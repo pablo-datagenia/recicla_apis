@@ -23,25 +23,10 @@ class ViajeAcciones:
 class ViajeManager(object):
 
     @classmethod
-    def __obtener_obj(cls, data):
-        if 'id' in data:
-            try:
-                return Viaje.objects.get(pk=data['id'])
-            except Viaje.DoesNotExists:
-                return None
-
-    @classmethod
-    def __obtener_usuario(cls, id):
+    def __obtener_obj(cls, data_id):
         try:
-            return User.objects.get(pk=id)
-        except User.DoesNotExists:
-            return None
-
-    @classmethod
-    def __obtener_punto(cls, punto_id):
-        try:
-            return PuntoRecoleccion.objects.get(pk=punto_id)
-        except UsuarioPunto.DoesNotExists:
+            return Viaje.objects.get(pk=data_id)
+        except ObjectDoesNotExist:
             return None
 
     @classmethod
@@ -82,7 +67,7 @@ class ViajeManager(object):
                 soli.save()
                 cantidad += 1
 
-            return status.HTTP_200_OK, {'id': Viaje.id, 'recolecciones': cantidad}
+            return status.HTTP_200_OK, {'id': viaje.id, 'recolecciones': cantidad}
 
         except Exception as ex:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, f'Error al crear Viaje {str(ex)}'
@@ -106,55 +91,28 @@ class ViajeManager(object):
         if 'fin' in data:
             finalizar = True
 
-        try:
-            viaje = Viaje.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
+        viaje = cls.__obtener_obj(data['id'])
+        if viaje is None:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la Viaje'
 
         try:
 
             viaje.pos_x = data['posx']
             viaje.pos_y = data['posy']
+            cantidad = 0
             if finalizar:
                 viaje.estado = ViajeEstado.CERRADO
                 viaje.fin = datetime.now()
+                en_viaje = SolicitudManager.obtener_en_viaje(viaje)
+                for soli in en_viaje:
+                    cantidad += 1
+                    soli.estado = SolicitudEstado.CERRADA
+                    soli.cerrada = datetime.now()
+                    soli.save()
             viaje.save()
 
             return status.HTTP_200_OK, {'id': viaje.id, 'pos_x': viaje.pos_x, 'pos_y': viaje.pos_y,
-                                        'finalizado': finalizar}
-
-        except Exception as ex:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, f'Error al crear Viaje {str(ex)}'
-
-    @classmethod
-    def cerrar_viaje(cls, data, usuario):
-
-        if not cls.__tiene_permiso(data, usuario, ViajeAcciones.INICIAR):
-            return status.HTTP_401_UNAUTHORIZED, 'Usuario sin permiso para modificar Viajes'
-
-        if 'id' not in data:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede modificar Viaje sin su clave'
-
-        try:
-            viaje = Viaje.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la Viaje'
-
-        try:
-
-            viaje.estado = ViajeEstado.CERRADO
-            viaje.save()
-
-            en_viaje = SolicitudManager.obtener_en_viaje(viaje)
-
-            cantidad = 0
-            for soli in en_viaje:
-                cantidad += 1
-                soli.estado = SolicitudEstado.CERRADA
-                soli.cerrada = datetime.now()
-                soli.save()
-
-            return status.HTTP_200_OK, {'id': viaje.id, 'estado': 'CERRADO', 'recolecciones': cantidad}
+                                        'finalizado': finalizar, 'solicitudes': cantidad}
 
         except Exception as ex:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, f'Error al crear Viaje {str(ex)}'
@@ -165,9 +123,8 @@ class ViajeManager(object):
         if 'id' not in data:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede cancelar Viaje sin su clave'
 
-        try:
-            viaje = Viaje.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
+        viaje = cls.__obtener_obj(data['id'])
+        if viaje is None:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la Viaje'
 
         try:
@@ -177,12 +134,6 @@ class ViajeManager(object):
             viaje.estado = ViajeEstado.CANCELADO
             viaje.save()
 
-            return status.HTTP_200_OK, {'id': soli.id, 'estado': 'CANCELADA'}
+            return status.HTTP_200_OK, {'id': viaje.id, 'estado': 'CANCELADA'}
         except Exception as exc:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
-
-
-    @classmethod
-    def mensajear_Viaje(cls, data, usuario):
-        pass
-

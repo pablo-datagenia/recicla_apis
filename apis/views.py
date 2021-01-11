@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from .decorator import accion_usuario, accion_recolector, accion_admin
+from .servicios.punto_manager import PuntoRecoleccionManager
 
 from .servicios.solicitud_manager import SolicitudManager
 from .servicios.viaje_manager import ViajeManager
@@ -42,6 +43,28 @@ def registrar_usuario(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 @accion_usuario
+def crear_punto_recoleccion(request):
+
+    st, data = PuntoRecoleccionManager.crear_punto_recoleccion(request.data, request.user)
+
+    return Response(status=st, data=data)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@accion_usuario
+def actualizar_punto_recoleccion(request):
+
+    st, data = PuntoRecoleccionManager.actualizar_punto(request.data, request.user)
+
+    return Response(status=st, data=data)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@accion_usuario
 def crear_solicitud(request):
 
     st, data = SolicitudManager.crear_solicitud(request.data, request.user)
@@ -64,49 +87,9 @@ def cancelar_solicitud(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 @accion_recolector
-def solicitudes_nuevas(request):
+def solicitudes_recolector(request):
 
-    st, data = SolicitudManager.obtener_nuevas()
-    return Response(status=st, data=data)
-
-
-@api_view(['POST'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-@accion_recolector
-def solicitudes_asignadas(request):
-
-    st, data = SolicitudManager.obtener_asignadas(request.user)
-    return Response(status=st, data=data)
-
-
-@api_view(['POST'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-@accion_recolector
-def solicitudes_planificadas(request):
-
-    st, data = SolicitudManager.obtener_planificadas(request.user)
-    return Response(status=st, data=data)
-
-
-@api_view(['POST'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-@accion_recolector
-def solicitudes_en_curso(request):
-
-    st, data = SolicitudManager.obtener_en_curso(request.user)
-    return Response(status=st, data=data)
-
-
-@api_view(['POST'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
-@accion_recolector
-def solicitudes_cerradas(request):
-
-    st, data = SolicitudManager.obtener_cerradas(request.user)
+    st, data = SolicitudManager.obtener_solicitudes_recolector()
     return Response(status=st, data=data)
 
 

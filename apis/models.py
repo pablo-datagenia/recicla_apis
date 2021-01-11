@@ -35,6 +35,9 @@ class PuntoRecoleccion(models.Model):
     es_global = models.BooleanField(default=False)
     creado_por = models.ForeignKey(User, on_delete=models.PROTECT, null=False)
     creada_en = models.DateTimeField(verbose_name='Creada', auto_now_add=True)
+    horario = models.CharField(max_length=150, blank=True, null=True)
+    comentario = models.CharField(max_length=150, blank=True, null=True)
+    estado = models.IntegerField(null=False, default=1)
 
     def __str__(self):
         return self.domicilio
@@ -44,6 +47,11 @@ class UsuarioPunto(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=False)
     punto = models.ForeignKey(PuntoRecoleccion, on_delete=models.PROTECT, null=False)
     default = models.BooleanField(default=False)
+
+
+class PuntoEstado:
+    HABILITADO = 1
+    INHABILITADO = 2
 
 
 class SolicitudEstado:

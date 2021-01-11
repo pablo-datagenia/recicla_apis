@@ -12,41 +12,34 @@ class SolicitudAcciones:
     CREAR = 'Nueva'
     ASIGNAR = 'Asignar'
     PLANIFICAR = 'Planificar'
-    DAR_CURSO = 'Dar curso'
     CERRAR = 'Cerrar'
     CANCELAR = 'Cancelar'
+    ELIMINAR = 'Eliminar'
 
     ACCIONES = {
         'CREAR': 1,
         'ASIGNAR': 2,
         'PLANIFICAR': 3,
-        'DAR_CURSO': 4,
-        'CERRAR': 5,
-        'CANCELAR': 6}
+        'CERRAR': 4,
+        'CANCELAR': 5,
+        'ELIMINAR': 6
+    }
 
 
 class SolicitudManager(object):
 
     @classmethod
-    def __obtener_obj(cls, data):
-        if 'id' in data:
-            try:
-                return Solicitud.objects.get(pk=data['id'])
-            except Solicitud.DoesNotExists:
-                return None
-
-    @classmethod
-    def __obtener_usuario(cls, id):
+    def __obtener_obj(cls, data_ids):
         try:
-            return User.objects.get(pk=id)
-        except User.DoesNotExists:
+            return Solicitud.objects.filter(pk__in=data_ids)
+        except ObjectDoesNotExist:
             return None
 
     @classmethod
     def __obtener_punto(cls, punto_id):
         try:
             return PuntoRecoleccion.objects.get(pk=punto_id)
-        except UsuarioPunto.DoesNotExists:
+        except ObjectDoesNotExist:
             return None
 
     @classmethod
@@ -58,6 +51,11 @@ class SolicitudManager(object):
         if accion == SolicitudAcciones.CREAR:
             # Va por decoratos
             return True
+
+        if accion == SolicitudAcciones.ELIMINAR:
+            # Va por decoratos
+            if validarGrupo(usuario, 'administrador'):
+                return True
 
         return False
 
@@ -101,83 +99,27 @@ class SolicitudManager(object):
         except Exception as ex:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, f'Error al crear solicitud {str(ex)}'
 
+    @classmethod
+    def __obtener_por_estado(cls, estados):
+        solicitudes = Solicitud.objects.filter(estado__in=estados). \
+            exclude(eliminada=True).values('id',
+                                           fec=F('creada'),
+                                           estc=F('estado'),
+                                           usu=F('usuario__username'),
+                                           punt=F('punto__domicilio'),
+                                           mat=F('materiales'))
+        return solicitudes
 
     @classmethod
-    def obtener_nuevas(cls):
+    def obtener_solicitudes_recolector(cls, data, usuario):
 
         try:
-            nuevas = Solicitud.objects.filter(estado=SolicitudEstado.NUEVA).\
-                exclude(eliminada=True).values('id',
-                                               fec=F('creada'),
-                                               usu=F('usuario__username'),
-                                               punt=F('punto__domicilio'),
-                                               mat=F('materiales'))
+            solicitudes = cls.__obtener_por_estado(data['estados'])
+            return status.HTTP_200_OK, solicitudes
 
-            return status.HTTP_200_OK, nuevas
         except Exception as exc:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
 
-    @classmethod
-    def obtener_asignadas(cls, usuario):
-
-        try:
-            asignadas = Solicitud.objects.filter(estado=SolicitudEstado.ASIGNADA,
-                                                 usuario=usuario). \
-                exclude(eliminada=True).values('id',
-                                               fec=F('creada'),
-                                               usu=F('usuario__username'),
-                                               punt=F('punto__domicilio'),
-                                               mat=F('materiales'))
-
-            return status.HTTP_200_OK, asignadas
-        except Exception as exc:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
-
-    @classmethod
-    def obtener_planificadas(cls, usuario):
-
-        try:
-            planificadas = Solicitud.objects.filter(estado=SolicitudEstado.PLANIFICADA,
-                                                    usuario=usuario). \
-                exclude(eliminada=True).values('id',
-                                               fec=F('creada'),
-                                               usu=F('usuario__username'),
-                                               punt=F('punto__domicilio'),
-                                               mat=F('materiales'),
-                                               plan=F('fecha_planificada'))
-
-            return status.HTTP_200_OK, planificadas
-        except Exception as exc:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
-
-    @classmethod
-    def obtener_en_viaje(cls, viaje):
-
-        try:
-            en_viaje = Solicitud.objects.filter(estado=SolicitudEstado.en_viaje,
-                                                viaje=viaje). \
-                exclude(eliminada=True)
-
-            return status.HTTP_200_OK, en_viaje
-        except Exception as exc:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
-
-    @classmethod
-    def obtener_cerradas(cls, usuario):
-
-        try:
-            cerradas = Solicitud.objects.filter(estado=SolicitudEstado.CERRADA,
-                                                usuario=usuario). \
-                exclude(eliminada=True).values('id',
-                                               fec=F('creada'),
-                                               usu=F('usuario__username'),
-                                               punt=F('punto__domicilio'),
-                                               mat=F('materiales'),
-                                               plan=F('fecha_planificada'))
-
-            return status.HTTP_200_OK, cerradas
-        except Exception as exc:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
 
     @classmethod
     def obtener_eliminadas(cls):
@@ -197,43 +139,47 @@ class SolicitudManager(object):
 
     @classmethod
     def asignar_solicitud(cls, data, usuario):
-
+        # Recolector puede asignarse/desasignarse una o varias solicitudes
         asignar = True
 
-        if 'id' not in data:
+        if 'ids' not in data:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede asignar/desasignar solicitud sin su clave'
 
-        if 'des' in data:
+        if 'des' in data and not data['des']:
             asignar = False
 
-        try:
-            soli = Solicitud.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la solicitud'
+        solis = cls.__obtener_obj(data['ids'])
+        if solis is None:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existen las solicitudes'
 
         try:
-
+            cantidad = 0
             if asignar:
-                if soli.estado != SolicitudEstado.NUEVA or soli.eliminada:
-                    return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede asignar la solicitud estado incorrecto'
+                for soli in solis:
+                    if soli.estado != SolicitudEstado.NUEVA or soli.eliminada:
+                        return status.HTTP_500_INTERNAL_SERVER_ERROR, \
+                               'No se puede asignar la solicitud estado incorrecto'
 
-                soli.estado = SolicitudEstado.ASIGNADA
-                soli.recolector = usuario
-                soli.asignada = datetime.now()
-                soli.save()
+                    soli.estado = SolicitudEstado.ASIGNADA
+                    soli.recolector = usuario
+                    soli.asignada = datetime.now()
+                    soli.save()
+                    cantidad += 1
 
-                return status.HTTP_200_OK, {'id': soli.id, 'estado': 'ASIGNADA'}
+                return status.HTTP_200_OK, {'ASIGNADAS': cantidad}
 
             else:
-                if soli.estado != SolicitudEstado.ASIGNADA or soli.eliminada:
-                    return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede desasignar la solicitud'
+                for soli in solis:
+                    if soli.estado != SolicitudEstado.ASIGNADA or soli.eliminada:
+                        return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede desasignar la solicitud'
 
-                soli.estado = SolicitudEstado.NUEVA
-                soli.recolector = None
-                soli.asignada = None
-                soli.save()
+                    soli.estado = SolicitudEstado.NUEVA
+                    soli.recolector = None
+                    soli.asignada = None
+                    soli.save()
+                    cantidad += 1
 
-                return status.HTTP_200_OK, {'id': soli.id, 'estado': 'DESASIGNADA'}
+                return status.HTTP_200_OK, {'DESASIGNADAS': cantidad}
 
         except Exception as exc:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
@@ -241,26 +187,29 @@ class SolicitudManager(object):
     @classmethod
     def cancelar_solicitud(cls, data, usuario):
 
-        if 'id' not in data:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede cancelar solicitud sin su clave'
+        if 'ids' not in data:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede cancelar solicitudes sin su clave'
+
+        solis = cls.__obtener_obj(data['ids'])
+        if solis is None:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existen solicitudes'
 
         try:
-            soli = Solicitud.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la solicitud'
+            es_administrador = validarGrupo(usuario, 'administrador')
+            cantidad = 0
+            for soli in solis:
+                if soli.usuario != usuario and not es_administrador:
+                    return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no puede cancelar solicitud de otro usuario'
 
-        try:
-            if soli.usuario != usuario and not validarGrupo(usuario, 'administrador'):
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no puede cancelar solicitud de otro usuario'
+                if soli.estado == SolicitudEstado.CERRADA or soli.eliminada:
+                    return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede cancelar solicitud cerrada o eliminada'
 
-            if soli.estado == SolicitudEstado.CERRADA or soli.eliminada:
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede cancelar solicitud cerrada o eliminada'
+                soli.estado = SolicitudEstado.CANCELADA
+                soli.cancelada = datetime.now()
+                soli.save()
+                cantidad += 1
 
-            soli.estado = SolicitudEstado.CANCELADA
-            soli.cancelada = datetime.now()
-            soli.save()
-
-            return status.HTTP_200_OK, {'id': soli.id, 'estado': 'CANCELADA'}
+            return status.HTTP_200_OK, {'CANCELADAS': cantidad}
         except Exception as exc:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
 
@@ -268,116 +217,109 @@ class SolicitudManager(object):
     def planificar_solicitud(cls, data, usuario):
 
         planificar = True
+        if 'ids' not in data:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede planificar solicitudes sin claves'
 
-        if 'id' not in data:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede cancelar solicitud sin su clave'
-
-        if 'des' in data:
+        if 'des' in data and not data['des']:
             planificar = False
 
-        try:
-            soli = Solicitud.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
+        solis = cls.__obtener_obj(data['ids'])
+        if solis is None:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la solicitud'
 
         try:
-            if soli.recolector != usuario and not validarGrupo(usuario, 'administrador'):
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no puede planificar solicitud de otro usuario'
-
+            es_administrador = validarGrupo(usuario, 'administrador')
+            cantidad = 0
             if planificar:
-                if soli.estado != SolicitudEstado.ASIGNADA or soli.eliminada:
-                    return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede planificar solicitud error estado'
+                for soli in solis:
+                    if soli.recolector != usuario and not es_administrador:
+                        return status.HTTP_500_INTERNAL_SERVER_ERROR, \
+                               'Usuario no puede planificar solicitud de otro usuario'
 
-                soli.estado = SolicitudEstado.PLANIFICADA
-                soli.planificada = datetime.now()
-                soli.save()
+                    if soli.estado != SolicitudEstado.ASIGNADA or soli.eliminada:
+                        return status.HTTP_500_INTERNAL_SERVER_ERROR, \
+                               'No se puede planificar solicitud error estado'
 
-                return status.HTTP_200_OK, {'id': soli.id, 'estado': 'PLANIFICADA'}
+                    soli.estado = SolicitudEstado.PLANIFICADA
+                    soli.planificada = datetime.now()
+                    soli.save()
+                    cantidad += 1
+
+                    return status.HTTP_200_OK, {'PLANIFICADAS': cantidad}
             else:  # DES-PLANIFICAR
-                if soli.estado != SolicitudEstado.PLANIFICADA or soli.eliminada:
-                    return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede des-planificar solicitud error estado'
 
-                soli.estado = SolicitudEstado.ASIGNADA
-                soli.planificada = None
-                soli.save()
+                for soli in solis:
+                    if soli.recolector != usuario and not es_administrador:
+                        return status.HTTP_500_INTERNAL_SERVER_ERROR, \
+                               'Usuario no puede planificar solicitud de otro usuario'
 
-                return status.HTTP_200_OK, {'id': soli.id, 'estado': 'DES-PLANIFICADA'}
-        except Exception as exc:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
+                    if soli.estado != SolicitudEstado.PLANIFICADA or soli.eliminada:
+                        return status.HTTP_500_INTERNAL_SERVER_ERROR, \
+                               'No se puede des-planificar solicitud error estado'
 
-    @classmethod
-    def dar_curso_solicitud(cls, data, usuario):
-        if 'id' not in data:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede dar curso a solicitud sin su clave'
+                    soli.estado = SolicitudEstado.ASIGNADA
+                    soli.planificada = None
+                    soli.save()
+                    cantidad += 1
 
-        try:
-            soli = Solicitud.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la solicitud'
-
-        try:
-            if soli.recolector != usuario and not validarGrupo(usuario, 'administrador'):
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no modificar solicitud de otro recolector'
-
-            if soli.estado != SolicitudEstado.PLANIFICADA or soli.eliminada:
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, \
-                       'No se puede dar curso a solicitud en no planificada o eliminada'
-
-            soli.estado = SolicitudEstado.en_viaje
-            soli.en_viaje = datetime.now()
-            soli.save()
-
-            return status.HTTP_200_OK, {'id': soli.id, 'estado': 'EN CURSO'}
+                return status.HTTP_200_OK, {'DES-PLANIFICADA': cantidad}
         except Exception as exc:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
 
     @classmethod
     def cerrar_solicitud(cls, data, usuario):
 
-        if 'id' not in data:
+        if 'ids' not in data:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede cerrar a solicitud sin su clave'
 
-        try:
-            soli = Solicitud.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la solicitud'
+        solis = cls.__obtener_obj(data['ids'])
+        if solis is None:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existen solicitudes'
 
         try:
-            if soli.recolector != usuario and not validarGrupo(usuario, 'administrador'):
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no puede modificar solicitud de otro recolector'
+            es_administrador = validarGrupo(usuario, 'administrador')
+            cantidad = 0
+            for soli in solis:
+                if soli.recolector != usuario and not es_administrador:
+                    return status.HTTP_500_INTERNAL_SERVER_ERROR, \
+                           'Usuario no puede modificar solicitud de otro recolector'
 
-            if soli.estado != SolicitudEstado.en_viaje or soli.eliminada:
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, \
-                       'No se puede cerrar solicitud que no estuvo en curso, o la misma está eliminada'
+                if soli.estado not in [SolicitudEstado.en_viaje,
+                                       SolicitudEstado.PLANIFICADA,
+                                       SolicitudEstado.ASIGNADA] or soli.eliminada:
+                    return status.HTTP_500_INTERNAL_SERVER_ERROR, \
+                           'No se puede cerrar solicitud que no estuvo en curso, o la misma está eliminada'
 
-            soli.estado = SolicitudEstado.CERRADA
-            soli.cerrada = datetime.now()
-            soli.save()
+                soli.estado = SolicitudEstado.CERRADA
+                soli.cerrada = datetime.now()
+                soli.save()
+                cantidad += 1
 
-            return status.HTTP_200_OK, {'id': soli.id, 'estado': 'CERRADA'}
+            return status.HTTP_200_OK, {'CERRADAS': cantidad}
         except Exception as exc:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
-
 
     @classmethod
     def eliminar_solicitud(cls, data, usuario):
 
-        if 'id' not in data:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede ELIMINAR una solicitud sin su clave'
+        if 'ids' not in data:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede ELIMINAR solicitudes sin claves'
+
+        solis = cls.__obtener_obj(data['ids'])
+        if solis is None:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existen solicitudes'
 
         try:
-            soli = Solicitud.objects.get(pk=data['id'])
-        except ObjectDoesNotExist:
-            return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No existe la solicitud'
-
-        try:
+            cantidad = 0
             if not validarGrupo(usuario, 'administrador'):
-                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no puede eliminar solicitud'
+                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Usuario no puede eliminar solicitudes'
 
-            soli.eliminada = True
-            soli.save()
+            for soli in solis:
+                soli.eliminada = True
+                soli.save()
+                cantidad += 1
 
-            return status.HTTP_200_OK, {'id': soli.id, 'estado': 'ELIMINADA POR ADMIN'}
+            return status.HTTP_200_OK, {'ELIMINADAS': cantidad}
         except Exception as exc:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
 
