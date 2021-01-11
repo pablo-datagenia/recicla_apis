@@ -20,6 +20,8 @@ class Perfil:
 
 
 class Provincia(models.Model):
+    objects = models.Manager()
+
     provincia = models.CharField(max_length=50, unique=True)
     habilitada = models.BooleanField(default=False)
 
@@ -28,6 +30,8 @@ class Provincia(models.Model):
 
 
 class PuntoRecoleccion(models.Model):
+    objects = models.Manager()
+
     domicilio = models.CharField(max_length=250, blank=True, null=True)
     provincia = models.ForeignKey(Provincia, on_delete=models.PROTECT, null=False)
     geox = models.CharField(max_length=50, blank=True, null=True)
@@ -44,6 +48,8 @@ class PuntoRecoleccion(models.Model):
 
 
 class UsuarioPunto(models.Model):
+    objects = models.Manager()
+
     usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=False)
     punto = models.ForeignKey(PuntoRecoleccion, on_delete=models.PROTECT, null=False)
     default = models.BooleanField(default=False)
@@ -58,7 +64,7 @@ class SolicitudEstado:
     NUEVA = 1
     ASIGNADA = 2
     PLANIFICADA = 3
-    en_viaje = 4
+    EN_VIAJE = 4
     CERRADA = 5
     CANCELADA = 6
 
@@ -71,6 +77,8 @@ class ViajeEstado:
 
 
 class Viaje(models.Model):
+    objects = models.Manager()
+
     creado = models.DateTimeField(verbose_name='Creado', auto_now_add=True)
     inicio = models.DateTimeField(verbose_name='Inicia en', null=True, blank=True)
     fin = models.DateTimeField(verbose_name='Finalizado en', null=True, blank=True)
@@ -81,10 +89,12 @@ class Viaje(models.Model):
     estado = models.IntegerField(null=False, default=1)
 
     def __str__(self):
-        return self.recolector + '-Viaje:' + self.pk
+        return self.recolector.username + '-Viaje:' + str(self.pk)
 
 
 class Solicitud(models.Model):
+    objects = models.Manager()
+
     usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=False, related_name='usuario')
     punto = models.ForeignKey(PuntoRecoleccion, on_delete=models.PROTECT, null=True)
     estado = models.IntegerField(null=False, default=1)
@@ -103,23 +113,29 @@ class Solicitud(models.Model):
     viaje = models.ForeignKey(Viaje, on_delete=models.PROTECT, null=True)
 
     def __str__(self):
-        return str(self.id) + self.usuario.username
+        return str(self.pk) + '-' + self.usuario.username
 
 
 class SolicitudMensaje(models.Model):
+    objects = models.Manager()
+
     solicitud = models.ForeignKey(Solicitud, on_delete=models.PROTECT, null=False)
     mensaje = models.CharField(max_length=250, blank=True, null=True)
     creada = models.DateTimeField(verbose_name='Creada', auto_now_add=True)
 
 
 class Material(models.Model):
+    objects = models.Manager()
+
     material = models.CharField(max_length=150, blank=False, null=False, unique=True)
     codigo = models.CharField(max_length=2, blank=False, null=False, unique=True)
 
     def __str__(self):
-        return self.codigo + '-(' + self.material + ')'
+        return str(self.codigo) + '-(' + str(self.material) + ')'
 
 
 class SolicitudMaterial(models.Model):
+    objects = models.Manager()
+
     solicitud = models.ForeignKey(Solicitud, on_delete=models.PROTECT, null=False)
     material = models.ForeignKey(Material, on_delete=models.PROTECT, null=True)

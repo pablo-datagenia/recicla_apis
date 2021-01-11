@@ -64,10 +64,10 @@ class PuntoRecoleccionManager(object):
             punto.comentario = data['comentario']
             punto.save()
 
-            usuarioPunto = UsuarioPunto()
-            usuarioPunto.usuario = usuario
-            usuarioPunto.punto = punto
-            usuarioPunto.save()
+            usuario_punto = UsuarioPunto()
+            usuario_punto.usuario = usuario
+            usuario_punto.punto = punto
+            usuario_punto.save()
 
             return status.HTTP_200_OK, {'id': punto.id, 'estado': 'HABILITADO',
                                         'usuario': usuario.username, 'global': punto.es_global}

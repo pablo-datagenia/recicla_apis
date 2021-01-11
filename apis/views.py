@@ -89,7 +89,7 @@ def cancelar_solicitud(request):
 @accion_recolector
 def solicitudes_recolector(request):
 
-    st, data = SolicitudManager.obtener_solicitudes_recolector()
+    st, data = SolicitudManager.obtener_lista_solicitudes_recolector(request.data, request.user)
     return Response(status=st, data=data)
 
 
@@ -99,7 +99,7 @@ def solicitudes_recolector(request):
 @accion_admin
 def solicitudes_eliminadas(request):
 
-    st, data = SolicitudManager.obtener_eliminadas()
+    st, data = SolicitudManager.obtener_eliminadas(request.user)
     return Response(status=st, data=data)
 
 
@@ -161,12 +161,25 @@ def actualizar_viaje(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 @accion_recolector
-def cerrar_solicitud(request):
+def cancelar_viaje(request):
 
+    st, data = ViajeManager.cancelar_viaje(request.data, request.user)
+
+    return Response(status=st, data=data)
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@accion_recolector
+def cerrar_solicitud(request):
+    # Caso que el recolecter elija cerrar por fuera de un viaje de recolección
     st, data = SolicitudManager.cerrar_solicitud(request.data, request.user)
 
     return Response(status=st, data=data)
 
+
+# TODO: Vistas para pantallas de la APP
 
 class UsuariosList(generics.ListAPIView):
     serializer_class = serializers.UsuarioSerializer

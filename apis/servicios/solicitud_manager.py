@@ -1,11 +1,10 @@
-from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.utils.datetime_safe import datetime
 from rest_framework import status
 
 from ..decorator import validarGrupo
-from ..models import Solicitud, UsuarioPunto, SolicitudEstado, SolicitudMaterial, Material, PuntoRecoleccion
+from ..models import Solicitud, SolicitudEstado, SolicitudMaterial, Material, PuntoRecoleccion
 
 
 class SolicitudAcciones:
@@ -43,7 +42,7 @@ class SolicitudManager(object):
             return None
 
     @classmethod
-    def __tiene_permiso(cls, data, usuario, accion):
+    def __tiene_permiso(cls, usuario, accion):
         """
             Persmisos básicos van por decorator, aqui valida permisos especiales
         """
@@ -51,6 +50,14 @@ class SolicitudManager(object):
         if accion == SolicitudAcciones.CREAR:
             # Va por decoratos
             return True
+
+        if accion in [SolicitudAcciones.ASIGNAR,
+                      SolicitudAcciones.PLANIFICAR,
+                      SolicitudAcciones.CERRAR,
+                      SolicitudAcciones.CANCELAR]:
+            if validarGrupo(usuario, 'recolector') or \
+                    validarGrupo(usuario, 'administrador'):
+                return True
 
         if accion == SolicitudAcciones.ELIMINAR:
             # Va por decoratos
@@ -62,7 +69,7 @@ class SolicitudManager(object):
     @classmethod
     def crear_solicitud(cls, data, usuario):
 
-        if not cls.__tiene_permiso(data, usuario, SolicitudAcciones.CREAR):
+        if not cls.__tiene_permiso(usuario, SolicitudAcciones.CREAR):
             return status.HTTP_401_UNAUTHORIZED, 'Usuario sin permiso para crear solicitudes'
 
         if 'punto' not in data:
@@ -94,37 +101,59 @@ class SolicitudManager(object):
                 sm.solicitud = solicitud
                 sm.save()
 
-            return status.HTTP_200_OK, {'id': solicitud.id}
+            return status.HTTP_200_OK, {'id': solicitud.pk}
 
         except Exception as ex:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, f'Error al crear solicitud {str(ex)}'
 
     @classmethod
-    def __obtener_por_estado(cls, estados):
-        solicitudes = Solicitud.objects.filter(estado__in=estados). \
-            exclude(eliminada=True).values('id',
-                                           fec=F('creada'),
-                                           estc=F('estado'),
-                                           usu=F('usuario__username'),
-                                           punt=F('punto__domicilio'),
-                                           mat=F('materiales'))
+    def __obtener_por_estado(cls, estados, lista=True, usuario=None):
+
+        solicitudes = Solicitud.objects.all().exclude(eliminada=True)
+        if usuario:
+            solicitudes = solicitudes.filter(usuario=usuario)
+
+        solicitudes = solicitudes.filter(estado__in=estados)
+
+        if lista:
+            solicitudes = solicitudes.values('id',
+                                             fec=F('creada'),
+                                             est=F('estado'),
+                                             usu=F('usuario__username'),
+                                             punt=F('punto__domicilio'),
+                                             mat=F('materiales'))
+
         return solicitudes
 
     @classmethod
-    def obtener_solicitudes_recolector(cls, data, usuario):
+    def obtener_lista_solicitudes_recolector(cls, data, usuario):
 
         try:
-            solicitudes = cls.__obtener_por_estado(data['estados'])
+            solicitudes = cls.__obtener_por_estado(estados=data['estados'], lista=True, usuario=usuario)
             return status.HTTP_200_OK, solicitudes
 
         except Exception as exc:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
 
-
     @classmethod
-    def obtener_eliminadas(cls):
+    def obtener_solicitudes_recolector(cls, data, usuario):
 
         try:
+            solicitudes = cls.__obtener_por_estado(estados=data['estados'], lista=False, usuario=usuario)
+            return status.HTTP_200_OK, solicitudes
+
+        except Exception as exc:
+            return status.HTTP_500_INTERNAL_SERVER_ERROR, str(exc)
+
+    @classmethod
+    def obtener_eliminadas(cls, usuario):
+        # Solo para gestion del Administrador
+        # los eliminados quedan fuera de Workflow
+        try:
+
+            if not validarGrupo(usuario, 'administrador'):
+                return status.HTTP_500_INTERNAL_SERVER_ERROR, 'Debe ser administrador'
+
             eliminadas = Solicitud.objects.filter(eliminada=True).\
                 values('id',
                        'creada',
@@ -186,7 +215,7 @@ class SolicitudManager(object):
 
     @classmethod
     def cancelar_solicitud(cls, data, usuario):
-
+        # Puede cancelar una solicitud el mismo usaurio que la creo o el administrador
         if 'ids' not in data:
             return status.HTTP_500_INTERNAL_SERVER_ERROR, 'No se puede cancelar solicitudes sin su clave'
 
@@ -284,7 +313,7 @@ class SolicitudManager(object):
                     return status.HTTP_500_INTERNAL_SERVER_ERROR, \
                            'Usuario no puede modificar solicitud de otro recolector'
 
-                if soli.estado not in [SolicitudEstado.en_viaje,
+                if soli.estado not in [SolicitudEstado.EN_VIAJE,
                                        SolicitudEstado.PLANIFICADA,
                                        SolicitudEstado.ASIGNADA] or soli.eliminada:
                     return status.HTTP_500_INTERNAL_SERVER_ERROR, \
@@ -326,4 +355,3 @@ class SolicitudManager(object):
     @classmethod
     def mensajear_solicitud(cls, data, usuario):
         pass
-

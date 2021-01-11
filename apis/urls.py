@@ -1,10 +1,10 @@
 from django.contrib.auth.decorators import login_required
 from django.urls import path
 from .views import ProvinciaList, SolicitudList, MaterialList, ViajeList, registrar_usuario, \
-    crear_solicitud, solicitudes_recolector, solicitudes_eliminadas, asignar_solicitud, \
+    crear_solicitud, solicitudes_eliminadas, asignar_solicitud, \
     planificar_solicitud, iniciar_viaje, PuntosList, eliminar_solicitud, UsuariosList, \
     actualizar_viaje, cerrar_solicitud, \
-    crear_punto_recoleccion, actualizar_punto_recoleccion, solicitudes_recolector
+    crear_punto_recoleccion, actualizar_punto_recoleccion, solicitudes_recolector, cancelar_solicitud, cancelar_viaje
 from rest_framework.authtoken import views
 
 urlpatterns = [
@@ -19,6 +19,8 @@ urlpatterns = [
     # Gestión de solicitudes
     # Usuario solicita que se recolecte material de un punto de recolección(domicilio)
     path('crear_solicitud', crear_solicitud),
+    # Usuario solicita que se cancele la solicitud
+    path('cancelar_solicitud', cancelar_solicitud),
     # ---  RECOLECTOR
     # Ve las solicitudes nuevas y se asigna las que le queden bien
     path('asignar_solicitud', asignar_solicitud),  # y desasignar si se equivoca
@@ -29,7 +31,10 @@ urlpatterns = [
     # se asocia el listado de solicitudes planificadas al viaje
     path('iniciar_viaje', iniciar_viaje),
     # Se actualiza posición del recolector o el estado del viaje (cerrado)
+    # Si actualiza el estado a "CERRADO" pone todas las solicitudes en CERRADOS
     path('actualizar_viaje', actualizar_viaje),
+    # Se cancela el viaje, todos los solicitudes vuelven a estar asignadas
+    path('cancelar_viaje', cancelar_viaje),
     # Recolector puede cerrar una solicitud como ya resuelta sin que este en viaje
     path('cerrar_solicitud', cerrar_solicitud),
 
@@ -38,6 +43,7 @@ urlpatterns = [
     # Colores distintivos:
 
     path('solicitudes_recolector', solicitudes_recolector),
+    # - Mapear estado a colores
     # -- BLANCO: Nuevas
     # -- AMARILLO: Asignadas
     # -- VERDE: Planificadas o en curso
