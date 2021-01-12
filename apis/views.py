@@ -7,7 +7,7 @@ from django.contrib.auth.models import User, Group
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from .decorator import accion_usuario, accion_recolector, accion_admin
+from .decorators import accion_usuario, accion_recolector, accion_admin
 from .servicios.punto_manager import PuntoRecoleccionManager
 
 from .servicios.solicitud_manager import SolicitudManager
@@ -24,6 +24,14 @@ def registrar_usuario(request):
 
     username = request.POST.get('username')
     password = request.POST.get('password')
+    grupo = 'usuarios'
+    if 'grupo' in request.POST:
+        grupo = request.POST.get('grupo')
+        if not Group.objects.filter(name=grupo).exists():
+            return Response('Grupo inexistente')
+
+    if User.objects.filter(username=username).exists():
+        return Response('Usuario ya existente')
 
     if User.objects.filter(username=username).exists():
         return Response('Usuario ya existente')
@@ -33,7 +41,7 @@ def registrar_usuario(request):
     new_user.save()
     token, created = Token.objects.get_or_create(user=new_user)
 
-    group = Group.objects.get(name='usuarios')
+    group = Group.objects.get(name=grupo)
     new_user.groups.add(group)
 
     return Response(status=status.HTTP_200_OK, data={'token': token.key})

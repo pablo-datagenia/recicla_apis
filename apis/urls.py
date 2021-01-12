@@ -1,3 +1,4 @@
+from django.conf.urls import url
 from django.contrib.auth.decorators import login_required
 from django.urls import path
 from .views import ProvinciaList, SolicitudList, MaterialList, ViajeList, registrar_usuario, \
@@ -6,8 +7,27 @@ from .views import ProvinciaList, SolicitudList, MaterialList, ViajeList, regist
     actualizar_viaje, cerrar_solicitud, \
     crear_punto_recoleccion, actualizar_punto_recoleccion, solicitudes_recolector, cancelar_solicitud, cancelar_viaje
 from rest_framework.authtoken import views
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
+schema_view = get_schema_view(
+   openapi.Info(
+      title="Snippets API",
+      default_version='v1',
+      description="Test description",
+      terms_of_service="https://www.google.com/policies/terms/",
+      contact=openapi.Contact(email="contact@snippets.local"),
+      license=openapi.License(name="BSD License"),
+   ),
+   public=True,
+   permission_classes=[permissions.AllowAny],
+)
 
 urlpatterns = [
+    # Documentación online:
+    path('', schema_view),
+    # TODO: toda api debería devolver la versión del backEnd para compatibilidad FrontEnd/BackEnd
     # Register / Login / Users
     path('registrar_usuario/', registrar_usuario, name='alta usuario'),
     path('login/', views.obtain_auth_token, name='login'),
@@ -61,4 +81,8 @@ urlpatterns = [
     path('eliminar_solicitud', eliminar_solicitud),
     path('solicitudes_eliminadas', solicitudes_eliminadas),
 
+] + [
+    url(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    url(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    url(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]

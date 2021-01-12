@@ -3,7 +3,7 @@ from django.db.models import F
 from django.utils.datetime_safe import datetime
 from rest_framework import status
 
-from ..decorator import validarGrupo
+from ..decorators import validarGrupo
 from ..models import Solicitud, SolicitudEstado, SolicitudMaterial, Material, PuntoRecoleccion
 
 

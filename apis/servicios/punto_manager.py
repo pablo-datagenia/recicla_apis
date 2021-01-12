@@ -1,6 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import status
-from ..decorator import validarGrupo
+from ..decorators import validarGrupo
 from ..models import UsuarioPunto, PuntoEstado, PuntoRecoleccion, Provincia
 
 
