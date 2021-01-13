@@ -24,7 +24,7 @@ SECRET_KEY = '#2sfy&^ky-vcekz&146!ovdzdnsb(ny_x+)(=3dn4**k8(=jv!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+VERSION = '0.1'
 ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1']
 
 
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'apis',
     'rest_framework',
     'rest_framework.authtoken',
+    'web',
 ]
 
 MIDDLEWARE = [

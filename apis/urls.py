@@ -30,8 +30,8 @@ urlpatterns = [
     # TODO: toda api debería devolver la versión del backEnd para compatibilidad FrontEnd/BackEnd
     # Register / Login / Users
     path('registrar_usuario/', registrar_usuario, name='alta usuario'),
-    path('login/', views.obtain_auth_token, name='login'),
     # ---  USUARIO
+    path('login/', views.obtain_auth_token, name='login'),
     # Configuración de cuenta sin un punto de recolección no podrá dar de alta solicitudes
     path('crear_punto_recoleccion', crear_punto_recoleccion),
     # Actualizar horario, comentario, coordenadas etc
